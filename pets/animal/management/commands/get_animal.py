@@ -1,13 +1,24 @@
 from django.core.management.base import BaseCommand
-from animal.models import Animal
+from animal.models import Animal, FindAnimal
 import json
 import urllib2
 import os
 import Image
 import urllib
+import re
+from optparse import make_option
 
 class Command(BaseCommand):
     args = '<>'
+    option_list = BaseCommand.option_list + (
+        make_option(
+            '-t',
+            '--table',
+            dest='table_name',
+            default=False,
+            help='Saved table name'
+        ),
+    )
     help = 'get animal data from http://data.taipei.gov.tw'
     #url = "http://163.29.39.183/GetAnimals.aspx"
     params = urllib.urlencode({'resource_id': 'c57f54e2-8ac3-4d30-bce0-637a8968796e'})
@@ -15,12 +26,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         print self.url
+        Kls = self.get_table_class(options['table_name'])
         data = urllib2.urlopen(self.url)
         j = json.load(data)
         j = j["result"]["records"]
         for i in j:
             print (i["Name"]).encode('utf-8')
-            a1 = Animal.objects.filter(accept_num=i["AcceptNum"])
+            a1 = Kls.objects.filter(accept_num=i["AcceptNum"])
             print a1
             if not a1:
                 url = i["ImageName"]
@@ -33,7 +45,8 @@ class Command(BaseCommand):
                 f.url = url_file
                 print self.thumbnail(f, "248x350")
                 print self.thumbnail(f, "248x350", True)
-                a = Animal(name=i["Name"],
+
+                a = Kls(name=i["Name"],
                            sex=i["Sex"],
                            type=i["Type"],
                            build=i["Build"],
@@ -81,3 +94,14 @@ class Command(BaseCommand):
                 image.save(miniature_filename, image.format, quality=90)
 
         return miniature_url
+
+
+    def get_table_class(self, table_name):
+        if not table_name:
+            Kls = Animal
+        elif re.match('^findanimal$', table_name, re.I):
+            Kls = FindAnimal
+        else:
+            Kls = Animal
+
+        return Kls
