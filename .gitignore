@@ -5,3 +5,9 @@ pets/animal/pics/
 pets/src/media/*.jpg
 *.pyc
 local_settings.py
+*.swp
+bin/
+lib/
+include/
+local/
+pets/CACHE/
